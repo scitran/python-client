@@ -80,16 +80,16 @@ if __name__ == '__main__':
                     )
                 all_files.append((s_st, a_st, f_st))
 
-        print 'checked', len(all_files), 'files'
-
-        for s, a, f in random.sample(all_files, 3):
-            cni.download_file('acquisitions', a['_id'], f['name'], f['hash'])
-            # if it doesn't match, we'll throw here.
-            print 'file download matches, sess {} acq {} file {}'.format(
-                s['_id'],
-                a['_id'],
-                f['name'],
-            )
-
         # XXX for testing
         break
+
+    print 'checked', len(all_files), 'files'
+
+    for s, a, f in random.sample(all_files, 3):
+        cni.download_file('acquisitions', a['_id'], f['name'], f['hash'])
+        # if it doesn't match, we'll throw here.
+        print 'file download matches, sess {} acq {} file {}'.format(
+            s['_id'],
+            a['_id'],
+            f['name'],
+        )
