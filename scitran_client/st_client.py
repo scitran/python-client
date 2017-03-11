@@ -142,13 +142,23 @@ class ScitranClient(object):
         self.token, self.base_url = st_auth.create_token(self.instance, self.st_dir)
         self.base_url = urlparse.urljoin(self.base_url, 'api/')
 
-    def _request(self, endpoint, method='GET', params=None, data=None, headers=None, files=None):
+    def _request(self, *args, **kwargs):
+        '''This function is deprecated.
+        '''
+        return self.request(*args, **kwargs)
+
+    def request(
+        self, endpoint, method='GET',
+        params=None, data=None, json=None,
+        headers=None, files=None
+    ):
         '''Dispatches requests, taking care of the instance-specific base_url and authentication.
         Also raises appropriate HTTP errors.
         Args:
             method (str): The HTTP method to perform ('GET', 'POST'...)
             params (dict): Dict of http parameters.
             data (str): Data payload that should be sent with the request.
+            json (any): JSON payload that should be sent with the request.
             headers (dict): Dict of http headers.
 
         Returns:
@@ -162,6 +172,7 @@ class ScitranClient(object):
                                         method=method,
                                         params=params,
                                         data=data,
+                                        json=json,
                                         headers=headers,
                                         auth=self._authenticate_request,
                                         files=files)
@@ -189,12 +200,12 @@ class ScitranClient(object):
         if num_results != -1:
             search_body.update({'size': num_results})
 
-        response = self._request(
-            endpoint='search', method='POST', data=json.dumps(search_body), params={'size': num_results})
+        response = self.request(
+            endpoint='search', method='POST', json=search_body, params={'size': num_results})
 
         # ensure we get the last path part to make this work for `analyses/files` queries
         last_path_part = path.split('/')[-1]
-        return json.loads(response.text)[last_path_part]
+        return response.json()[last_path_part]
 
     def search_files(self, constraints, **kwargs):
         return self.search(dict(constraints, path='files'), **kwargs)
@@ -257,12 +268,12 @@ class ScitranClient(object):
                 return abs_file_path
 
         if analysis_id:
-            ticket_response = json.loads(self._request(
+            ticket_response = self.request(
                 endpoint=endpoint, params=dict(ticket='')
-            ).text)
-            response = self._request(endpoint=endpoint, params=dict(ticket=ticket_response['ticket']))
+            ).json()
+            response = self.request(endpoint=endpoint, params=dict(ticket=ticket_response['ticket']))
         else:
-            response = self._request(endpoint=endpoint)
+            response = self.request(endpoint=endpoint)
 
         desc = tqdm_kwargs.pop('desc', file_name)
         leave = tqdm_kwargs.pop('leave', False)
@@ -348,7 +359,7 @@ class ScitranClient(object):
                 _add_file_to_request(filename, in_dir, metadata['inputs'])
             for filename in _find_files(out_dir):
                 _add_file_to_request(filename, out_dir, metadata['outputs'])
-            response = self._request(
+            response = self.request(
                 endpoint, method='POST',
                 data={'metadata': json.dumps(metadata)}, files=multipart_data)
         finally:
@@ -385,9 +396,9 @@ class ScitranClient(object):
         job_dict.update({'tags': tags})
         job_dict.update({'destination': destination})
 
-        response = self._request(endpoint=endpoint,
-                                 data=json.dumps(job_dict),
-                                 headers={'X-SciTran-Name:live.sh', 'X-SciTran-Method:script'})
+        response = self.request(endpoint=endpoint,
+                                data=json.dumps(job_dict),
+                                headers={'X-SciTran-Name:live.sh', 'X-SciTran-Method:script'})
         return response
 
     def run_gear_and_upload_analysis(
@@ -429,4 +440,4 @@ class ScitranClient(object):
         response = self.upload_analysis(in_dir, out_dir, metadata, target_collection_id=target_collection_id)
         log.info(
             'Uploaded analysis has ID {}. Server responded with {}.'
-            .format(json.loads(response.text)['_id'], response.status_code))
+            .format(response.json()['_id'], response.status_code))
