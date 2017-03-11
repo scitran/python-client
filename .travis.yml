@@ -7,4 +7,4 @@ install:
   - "pip install --upgrade pip"
   - "pip install -r python/requirements.txt"
 
-script: "flake8 python/{examples,scitran_client}"
+script: "make lint"
