@@ -4,7 +4,7 @@ import os
 client = ScitranClient()
 
 # Sessions belong to projects. We can thus directly the 'label' field of 'projects'.
-sessions = client.search(query(Sessions).filter(Projects.label.match('vwfa')))
+sessions = client.search(query(Sessions).filter(Projects.label.match('showdes')))
 
 # Files belong to acquisitions. We can filter files by their type (nifti, in this
 # example), as well as by properties of their acquisitions.
@@ -12,7 +12,7 @@ files = client.search(query(Files).filter(
     Files.type.match('nifti'),
     # Acquisitions belong to sessions. We can make sure the acquisitions correspond
     # to a session we are interested in and make sure they have a useful type for us.
-    Acquisitions.measurement.match('anatomy_t1w'),
+    Acquisitions.label.match('anatomical_mdeft'),
     Acquisitions.session.in_(session['_id'] for session in sessions),
 ))
 
