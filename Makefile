@@ -3,7 +3,6 @@ lint:
 
 publish_docs:
 	$(eval CURRENT_SHA := $(shell git rev-parse HEAD))
-	-git checkout -b gh-pages
 	git checkout gh-pages
 	git reset --hard $(CURRENT_SHA)
 	pdoc --html scitran_client --html-dir docs --overwrite
