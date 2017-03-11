@@ -155,18 +155,19 @@ class ScitranClient(object):
         '''Dispatches requests, taking care of the instance-specific base_url and authentication.
         Also raises appropriate HTTP errors.
         Args:
+            endpoint (str): The URL to request, relative to the host. Should
+                not have a leading slash.
             method (str): The HTTP method to perform ('GET', 'POST'...)
             params (dict): Dict of http parameters.
             data (str): Data payload that should be sent with the request.
             json (any): JSON payload that should be sent with the request.
             headers (dict): Dict of http headers.
+            files: description of files to be uploaded by the requests library.
+                See the requests library docs for more details:
+                http://docs.python-requests.org/en/master/user/quickstart/#post-a-multipart-encoded-file
 
         Returns:
             The full server response.
-
-        Raises:
-            http code 403: st_exceptions.NoPermission,
-            http code 404: st_exceptions.NotFound
         '''
         response = self.session.request(url=self._url(endpoint),
                                         method=method,
