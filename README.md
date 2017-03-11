@@ -19,3 +19,28 @@ ensures that your changes will get picked up.
 ```
 pip install --upgrade $WORKSPACE/python-client
 ```
+
+### Authenticating
+
+The first time you attempt to connect to a Flywheel server, you will have to set up
+your credentials. You'll see a message like this:
+
+```bash
+> ScitranClient()
+You can find your API key by visiting https://flywheel-cni.scitran.stanford.edu/#/profile and scrolling to the bottom of the page.
+If your key is blank, then click "Generate API Key"
+Enter your API key here: ...
+```
+
+After entering your API key, your authentication configuration file at `~/.scitran_client/auth.json`
+will be set up. If you are trying to access a flywheel instance besides https://flywheel.scitran.stanford.edu, open an issue on this repo.
+
+
+### Example
+```python
+from scitran_client import ScitranClient
+client = ScitranClient()
+print client.request('projects').json()[0]['label']
+# "ADHD Visual Cuing Study"
+```
+See the [examples](examples) directory for more!
