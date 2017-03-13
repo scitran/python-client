@@ -13,12 +13,8 @@ env/bin/pip install .
 env/bin/python examples/fsl_bet.py
 ```
 
-### Contributing
-Want to run changes to this code locally? It's pretty easy to get it added to an existing env. the `--upgrade` flag
-ensures that your changes will get picked up.
-```
-pip install --upgrade $WORKSPACE/python-client
-```
+See our [API Documentation](https://scitran.github.io/python-client/docs/scitran_client/) for more detailed information
+about the methods available for the Scitran Client and Flywheel Analyzer.
 
 ### Authenticating
 
@@ -44,3 +40,21 @@ print client.request('projects').json()[0]['label']
 # "ADHD Visual Cuing Study"
 ```
 See the [examples](examples) directory for more!
+
+
+### Contributing
+Want to run changes to this code locally? It's pretty easy to get it added to an existing env. the `--upgrade` flag
+ensures that your changes will get picked up.
+```bash
+pip install --upgrade $WORKSPACE/python-client
+```
+
+Lint your code with
+```bash
+make lint
+```
+
+Publish a new version of the docs with
+```bash
+make publish_docs
+```
