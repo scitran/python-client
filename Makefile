@@ -1,5 +1,7 @@
 test:
-	pytest tests
+	# hack to avoid needing to install this package
+	# from http://stackoverflow.com/a/34140498
+	python -m pytest tests
 
 lint:
 	flake8 examples scitran_client
