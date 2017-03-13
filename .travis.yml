@@ -7,4 +7,6 @@ install:
   - "pip install --upgrade pip"
   - "pip install -r requirements.txt"
 
-script: "make lint"
+script:
+  - "make lint"
+  - "make test"

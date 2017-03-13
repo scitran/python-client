@@ -1,3 +1,6 @@
+test:
+	pytest tests
+
 lint:
 	flake8 examples scitran_client
 
