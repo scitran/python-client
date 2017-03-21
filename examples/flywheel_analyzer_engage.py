@@ -15,6 +15,15 @@ label_to_behavioral_pattern = {
 }
 
 
+def _find_file(container, glob):
+    return (
+        container.find_file(glob) or
+        # HACK because flywheel does not currently support nested files
+        # in output folders, we are flattening hierarchy by replacing
+        # forward slashes with @@
+        container.find_file(glob.replace('/', '@@')))
+
+
 def analysis_label(gear_name, acquisition_label):
     return '{} ({})'.format(gear_name, acquisition_label)
 
@@ -40,14 +49,13 @@ def reactivity_inputs(acquisition_label, acquisitions, **kwargs):
 
 
 def connectivity_inputs(acquisition_label, analyses, acquisitions):
-    functional = fa.find(acquisitions, label=acquisition_label)
     reactivity = fa.find(
         analyses, label=analysis_label('reactivity-preprocessing', acquisition_label))
 
     return dict(
-        functional=functional.find_file('*.nii.gz'),
-        highres2standard_warp=reactivity.find_file('highres2standard_warp/*.nii.gz'),
-        example_func2highres=reactivity.find_file('example_func2highres_mat/*.mat'),
+        functional=_find_file(reactivity, 'realigned_unwarped_files/*.nii'),
+        highres2standard_warp=_find_file(reactivity, 'highres2standard_warp/*.nii.gz'),
+        example_func2highres=_find_file(reactivity, 'example_func2highres_mat/*.mat'),
     )
 
 
@@ -60,15 +68,15 @@ def first_level_model_inputs(acquisition_label, analyses, acquisitions):
         acquisitions, label='Behavioral and Physiological')
 
     return dict(
-        reactivity_functional=reactivity.find_file('smoothed/s02_globalremoved_func_data.nii'),
-        connectivity_functional=connectivity.find_file('result/swa01_normalized_func_data.nii'),
+        reactivity_functional=_find_file(reactivity, 'smoothed/s02_globalremoved_func_data.nii'),
+        connectivity_functional=_find_file(connectivity, 'result/swa01_normalized_func_data.nii'),
         behavioral=behavioral.find_file(label_to_behavioral_pattern[acquisition_label]),
-        structural_brain_fnirt_mask=reactivity.find_file('brain_fnirt_mask/*.nii.gz'),
-        example_func=reactivity.find_file('example_func/*.nii.gz'),
-        highres2example_func=reactivity.find_file('highres2example_func_mat/*.mat'),
-        example_func2highres=reactivity.find_file('example_func2highres_mat/*.mat'),
-        highres2standard_warp=reactivity.find_file('highres2standard_warp/*.nii.gz'),
-        spike_regressors_wFD=reactivity.find_file('wFD/spike_regressors_wFD.mat'),
+        structural_brain_fnirt_mask=_find_file(reactivity, 'brain_fnirt_mask/*.nii.gz'),
+        example_func=_find_file(reactivity, 'example_func/*.nii.gz'),
+        highres2example_func=_find_file(reactivity, 'highres2example_func_mat/*.mat'),
+        example_func2highres=_find_file(reactivity, 'example_func2highres_mat/*.mat'),
+        highres2standard_warp=_find_file(reactivity, 'highres2standard_warp/*.nii.gz'),
+        spike_regressors_wFD=_find_file(reactivity, 'wFD/spike_regressors_wFD.mat'),
     ), dict(task_type=label_to_task_type[acquisition_label])
 
 if __name__ == '__main__':
