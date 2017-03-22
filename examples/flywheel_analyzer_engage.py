@@ -1,4 +1,5 @@
 import scitran_client.flywheel_analyzer as fa
+from scitran_client import ScitranClient
 
 
 # XXX at least make this be just the first thing without ' 2'?
@@ -17,7 +18,7 @@ label_to_behavioral_pattern = {
 
 def _find_file(container, glob):
     return (
-        container.find_file(glob) or
+        container.find_file(glob, default=None) or
         # HACK because flywheel does not currently support nested files
         # in output folders, we are flattening hierarchy by replacing
         # forward slashes with @@
@@ -80,16 +81,17 @@ def first_level_model_inputs(acquisition_label, analyses, acquisitions):
     ), dict(task_type=label_to_task_type[acquisition_label])
 
 if __name__ == '__main__':
-    fa.run([
-        define_analysis('reactivity-preprocessing', 'go-no-go 2', reactivity_inputs),
-        define_analysis('connectivity-preprocessing', 'go-no-go 2', connectivity_inputs),
-        define_analysis('first-level-models', 'go-no-go 2', first_level_model_inputs),
+    with fa.installed_client(ScitranClient('https://flywheel-cni.scitran.stanford.edu')):
+        fa.run([
+            define_analysis('reactivity-preprocessing', 'go-no-go 2', reactivity_inputs),
+            define_analysis('connectivity-preprocessing', 'go-no-go 2', connectivity_inputs),
+            define_analysis('first-level-models', 'go-no-go 2', first_level_model_inputs),
 
-        define_analysis('reactivity-preprocessing', 'conscious 2', reactivity_inputs),
-        define_analysis('connectivity-preprocessing', 'conscious 2', connectivity_inputs),
-        define_analysis('first-level-models', 'conscious 2', first_level_model_inputs),
+            define_analysis('reactivity-preprocessing', 'conscious 2', reactivity_inputs),
+            define_analysis('connectivity-preprocessing', 'conscious 2', connectivity_inputs),
+            define_analysis('first-level-models', 'conscious 2', first_level_model_inputs),
 
-        define_analysis('reactivity-preprocessing', 'nonconscious 2', reactivity_inputs),
-        define_analysis('connectivity-preprocessing', 'nonconscious 2', connectivity_inputs),
-        define_analysis('first-level-models', 'nonconscious 2', first_level_model_inputs),
-    ], project=fa.find_project(label='ENGAGE'), session_limit=1)
+            define_analysis('reactivity-preprocessing', 'nonconscious 2', reactivity_inputs),
+            define_analysis('connectivity-preprocessing', 'nonconscious 2', connectivity_inputs),
+            define_analysis('first-level-models', 'nonconscious 2', first_level_model_inputs),
+        ], project=fa.find_project(label='ENGAGE'), session_limit=1)

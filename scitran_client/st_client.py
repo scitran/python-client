@@ -55,8 +55,7 @@ class ScitranClient(object):
     '''Handles api calls to a certain instance.
 
     Attributes:
-        instance (str): instance name.
-        base_url (str): The base url of that instance, as returned by stAuth.create_token(instance, st_dir)
+        instance_name (str): instance name or host.
         token (str): Authentication token.
         st_dir (str): The path to the directory where token and authentication file are kept for this instance.
     '''
@@ -70,7 +69,7 @@ class ScitranClient(object):
                  gear_out_dir=DEFAULT_OUTPUT_DIR):
 
         self.session = requests.Session()
-        self.instance = instance_name
+        self.instance_name_or_host = instance_name
         self.st_dir = st_dir
         self._authenticate()
         self.debug = debug
@@ -139,7 +138,7 @@ class ScitranClient(object):
         return request
 
     def _authenticate(self):
-        self.token, self.base_url = st_auth.create_token(self.instance, self.st_dir)
+        self.token, self.base_url = st_auth.create_token(self.instance_name_or_host, self.st_dir)
         self.base_url = urlparse.urljoin(self.base_url, 'api/')
 
     def _request(self, *args, **kwargs):

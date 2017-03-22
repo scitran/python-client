@@ -19,7 +19,8 @@ def afq_inputs(analyses, **kwargs):
     )
 
 if __name__ == '__main__':
-    fa.run([
-        fa.define_analysis('dtiinit', dtiinit_inputs),
-        fa.define_analysis('afq', afq_inputs),
-    ], project=fa.find_project(label='ENGAGE'))
+    with fa.installed_client():
+        fa.run([
+            fa.define_analysis('dtiinit', dtiinit_inputs),
+            fa.define_analysis('afq', afq_inputs),
+        ], project=fa.find_project(label='ENGAGE'))
