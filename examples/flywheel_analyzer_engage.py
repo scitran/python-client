@@ -18,7 +18,7 @@ label_to_behavioral_pattern = {
 
 def _find_file(container, glob):
     return (
-        container.find_file(glob) or
+        container.find_file(glob, default=None) or
         # HACK because flywheel does not currently support nested files
         # in output folders, we are flattening hierarchy by replacing
         # forward slashes with @@

@@ -42,26 +42,46 @@ def define_analysis(gear_name, create_inputs, label=None):
 
 
 class FlywheelFileContainer(dict):
-    def find_file(self, pattern):
+    def find_file(self, pattern, **kwargs):
         '''Find a file in this container with a name that matches pattern.
 
         This will look for a file in this container that matches the supplied
         pattern. Matching uses the fnmatch python library, which does Unix
         filename pattern matching.
 
+        kwargs['default'] - like `next`, when a default is supplied, it will be
+        returned when there are no matches. When a default is not supplied, an
+        exception will be thrown.
+
         To find a specific file, you can simply match by name:
         > acquisition.find_file('anatomical.nii.gz')
 
         To find a file with an extension, you can use a Unix-style pattern:
         > stimulus_onsets.find_file('*.txt')
+
+        When looking for a file that might be missing, supply a default value:
+        > partial_set_of_files.find_file('*.txt', default=None)
         '''
-        # TODO make sure this throws for missing or multiple files.
+        has_default = 'default' in kwargs
         is_analysis = 'job' in self and 'state' in self
 
         # XXX if is_analysis then we should require the file to be an output??
-        f = next(
+        matches = [
             f for f in self['files']
-            if fnmatch(f['name'], pattern))
+            if fnmatch(f['name'], pattern)]
+
+        assert len(matches) <= 1, (
+            'Multiple matches found for pattern "{}" in container {}. Patterns should uniquely identify a file.'
+            .format(pattern, self['_id']))
+        if not matches:
+            if has_default:
+                return kwargs.get('default')
+            else:
+                raise Exception(
+                    'Could not find a match for "{}" in container {}.'
+                    .format(pattern, self['_id']))
+
+        f = matches[0]
 
         return dict(
             type='analysis' if is_analysis else 'acquisition',
