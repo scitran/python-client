@@ -63,7 +63,7 @@ class FlywheelFileContainer(dict):
         > partial_set_of_files.find_file('*.txt', default=None)
         '''
         has_default = 'default' in kwargs
-        is_analysis = 'job' in self and 'state' in self
+        is_analysis = 'job' in self
 
         # XXX if is_analysis then we should require the file to be an output??
         matches = [
