@@ -25,17 +25,19 @@ def _prompt_for_valid_api_key(url):
     return api_key
 
 
-def create_token(instance_name, config_dir):
+def create_token(instance_name_or_host, config_dir):
     '''
     Get an API key for this instance, requesting a new one if no previous one exists.
 
     Args:
-        instance_name (str): The instance to generate a token for.
+        instance_name (str): The instance to generate a token for. Should only have one of `instance_name` or `host`.
+        host (str): The host we are are trying to generate a token for.
         config_dir (str): Path of directory where the tokens live.
 
     Returns:
         Python tuple: (token (str), client_url (str)): (The requested token, the base url for this client)
     '''
+
     if not os.path.exists(config_dir):
         os.mkdir(config_dir)
 
@@ -47,13 +49,21 @@ def create_token(instance_name, config_dir):
     with open(auth_path, 'r') as f:
         auth_config = json.load(f)
 
-    auth = auth_config.get(instance_name)
+    matches = [
+        a
+        for name, a in auth_config.iteritems()
+        if a['url'] == instance_name_or_host or name == instance_name_or_host
+    ]
+    assert len(matches) <= 1, \
+        'Too many matches for for {}. found: {}'.format(instance_name_or_host, matches)
+
+    auth = matches and matches[0]
 
     example = json.dumps(dict(api_key='<secret>', url='https://myflywheel.io'), indent=4)
     assert isinstance(auth, dict) and set(auth.keys()) == {'api_key', 'url'}, (
         'Missing or invalid entry in {0} for instance {1}. You can fix this issue by '
         'adding an entry for {1} or making it look more like this: {2}'
-        .format(auth_path, instance_name, example))
+        .format(auth_path, instance_name_or_host, example))
 
     # We just wipe out keys that are invalid.
     if auth['api_key'] and not _is_valid_token(auth['url'], auth['api_key']):

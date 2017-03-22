@@ -1,8 +1,12 @@
+from scitran_client import ScitranClient
 import scitran_client.flywheel_analyzer as fa
 
-D99 = fa.find(
-    fa.request('sessions/588bd1ac449f9800159305c2/acquisitions'),
-    label='atlas')
+client = ScitranClient('https://flywheel.scitran.stanford.edu')
+
+with fa.installed_client(client):
+    D99 = fa.find(
+        client.request('sessions/588bd1ac449f9800159305c2/acquisitions').json(),
+        label='atlas')
 
 
 def anatomical_warp_inputs(acquisitions, **kwargs):
@@ -14,6 +18,7 @@ def anatomical_warp_inputs(acquisitions, **kwargs):
     )
 
 if __name__ == '__main__':
-    fa.run([
-        fa.define_analysis('afni-brain-warp', anatomical_warp_inputs, label='anatomical warp'),
-    ], project=fa.find_project(label='showdes'), max_workers=2)
+    with fa.installed_client(client):
+        fa.run([
+            fa.define_analysis('afni-brain-warp', anatomical_warp_inputs, label='anatomical warp'),
+        ], project=fa.find_project(label='showdes'), max_workers=2)

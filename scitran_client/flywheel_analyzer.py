@@ -7,6 +7,7 @@ import traceback
 from fnmatch import fnmatch
 from collections import namedtuple, Counter
 import math
+from contextlib import contextmanager
 
 
 def _sleep(seconds):
@@ -104,8 +105,7 @@ class ShuttingDownException(Exception):
 
 def request(*args, **kwargs):
     # HACK client is a module variable for now. In the future, we should pass client around.
-    if 'client' not in state:
-        state['client'] = ScitranClient()
+    assert 'client' in state, 'client must be installed in state before using request. See `installed_client`.'
     response = state['client']._request(*args, **kwargs)
     return json.loads(response.text)
 
@@ -221,6 +221,24 @@ def _wait_for_futures(futures):
         for future in list(not_done):
             future.cancel()
         raise
+
+
+@contextmanager
+def installed_client(client=None):
+    '''
+    This context manager handles the installation of a scitran client for use
+    in the flywheel analyzer. Most flywheel analyzer code depends on this being
+    set up.
+
+    > with installed_client():
+    >   print fa.find_project(label='ADHD study') # actually works!
+    '''
+    # BIG HACK
+    state['client'] = client or ScitranClient()
+    try:
+        yield state['client']
+    finally:
+        state['client'] = None
 
 
 def run(operations, project=None, max_workers=10, session_limit=None):
