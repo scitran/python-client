@@ -123,6 +123,19 @@ class ShuttingDownException(Exception):
     shutting_down = False
 
 
+class SkipOperation(Exception):
+    '''
+    SkipOperation can be thrown from a `create_inputs` function to skip the execution of that
+    operation. This is a way to more dynamically create operation graphs by discarding nodes
+    at runtime.
+
+    For example, if every session has a variable number of functional acquisitions that need to be
+    processed, you can define operations for the max number of per-session functional acquisitions,
+    and throw SkipOperation for all operations corresponding to acquisitions missing for a session.
+    '''
+    pass
+
+
 def request(*args, **kwargs):
     # HACK client is a module variable for now. In the future, we should pass client around.
     assert 'client' in state, 'client must be installed in state before using request. See `installed_client`.'
@@ -201,7 +214,10 @@ def _analyze_session(operations, gears_by_name, session):
             # have completed analysis
             if not acquisitions:
                 acquisitions = request('sessions/{}/acquisitions'.format(session_id))
-            job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions)
+            try:
+                job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions, session=session)
+            except SkipOperation:
+                pass
             job_config = _defaults_for_gear(gears_by_name[gear_name])
 
             # When create_inputs returns a tuple, we unpack it into job_inputs and job_config.
