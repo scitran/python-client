@@ -1,4 +1,7 @@
 import scitran_client.flywheel_analyzer as fa
+from scitran_client import ScitranClient
+
+client = ScitranClient('https://flywheel-cni.scitran.stanford.edu')
 
 
 def dtiinit_inputs(acquisitions, **kwargs):
@@ -19,7 +22,7 @@ def afq_inputs(analyses, **kwargs):
     )
 
 if __name__ == '__main__':
-    with fa.installed_client():
+    with fa.installed_client(client):
         fa.run([
             fa.define_analysis('dtiinit', dtiinit_inputs, label_matcher=lambda val: val.startswith('dtiinit ')),
             fa.define_analysis('afq', afq_inputs, label_matcher=lambda val: val.startswith('afq ')),
