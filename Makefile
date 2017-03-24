@@ -1,5 +1,5 @@
 test:
-	# hack to avoid needing to install this package
+	# hack to avoid needing to install this client as a package
 	# from http://stackoverflow.com/a/34140498
 	python -m pytest tests
 

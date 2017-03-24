@@ -54,6 +54,11 @@ Lint your code with
 make lint
 ```
 
+Test your code with
+```bash
+make test
+```
+
 Publish a new version of the docs with
 ```bash
 make publish_docs

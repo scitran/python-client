@@ -23,10 +23,10 @@ state = {}
 
 
 FlywheelAnalysisOperation = namedtuple('FlywheelAnalysisOperation', [
-    'gear_name', 'create_inputs', 'label'])
+    'gear_name', 'create_inputs', 'label', 'label_matcher'])
 
 
-def define_analysis(gear_name, create_inputs, label=None):
+def define_analysis(gear_name, create_inputs, label=None, label_matcher=None):
     '''Defines an analysis operation that can be passed to run(...).
 
     An analysis operation has a gear name, label (which defaults to
@@ -38,7 +38,8 @@ def define_analysis(gear_name, create_inputs, label=None):
     inputs (to override the default config).
     '''
     label = label or gear_name
-    return FlywheelAnalysisOperation(gear_name, create_inputs, label)
+    label_matcher = label_matcher or label
+    return FlywheelAnalysisOperation(gear_name, create_inputs, label, label_matcher)
 
 
 class FlywheelFileContainer(dict):
@@ -105,7 +106,10 @@ def find(items, _constructor_=FlywheelFileContainer, **kwargs):
     # TODO make this have better errors messages for missing files
     result = next((
         item for item in items
-        if all(item[k] == v for k, v in kwargs.iteritems())
+        if all(
+            v(item[k]) if callable(v) else item[k] == v
+            for k, v in kwargs.iteritems()
+        )
     ), None)
     return result and _constructor_(result)
 
@@ -187,8 +191,8 @@ def _analyze_session(operations, gears_by_name, session):
     acquisitions = None
     session_id = session['_id']
     analyses = _get_analyses(session_id)
-    for gear_name, create_inputs, label in operations:
-        analysis = find(analyses, label=label)
+    for gear_name, create_inputs, label, label_matcher in operations:
+        analysis = find(analyses, label=label_matcher)
 
         # skip this analysis if we've already done it
         if analysis and analysis['job']['state'] == 'complete':
@@ -211,7 +215,7 @@ def _analyze_session(operations, gears_by_name, session):
                 job_inputs, job_config = job_inputs[0], dict(job_config, **job_inputs[1])
             _submit_analysis(session_id, gear_name, job_inputs, job_config, label)
 
-        analyses = _wait_for_analysis(session_id, label)
+        analyses = _wait_for_analysis(session_id, label_matcher)
     print(session_id, 'all analysis complete')
 
 

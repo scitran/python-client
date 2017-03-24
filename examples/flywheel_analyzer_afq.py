@@ -21,6 +21,6 @@ def afq_inputs(analyses, **kwargs):
 if __name__ == '__main__':
     with fa.installed_client():
         fa.run([
-            fa.define_analysis('dtiinit', dtiinit_inputs),
-            fa.define_analysis('afq', afq_inputs),
+            fa.define_analysis('dtiinit', dtiinit_inputs, label_matcher=lambda val: val.startswith('dtiinit ')),
+            fa.define_analysis('afq', afq_inputs, label_matcher=lambda val: val.startswith('afq ')),
         ], project=fa.find_project(label='ENGAGE'))
