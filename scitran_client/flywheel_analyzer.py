@@ -288,7 +288,7 @@ def run(operations, project=None, max_workers=10, session_limit=None):
 
     # HACK this is seriously a total hack, but is a nice way to see the status
     # of a pipeline without editing code.
-    if os.environ.get('FLYWHEEL_ANALYZER_STATUS').lower() == 'true':
+    if os.environ.get('FLYWHEEL_ANALYZER_STATUS', '').lower() == 'true':
         status(operations, project)
         return
 

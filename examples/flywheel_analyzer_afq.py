@@ -1,11 +1,12 @@
 import scitran_client.flywheel_analyzer as fa
 from scitran_client import ScitranClient
+import re
 
 client = ScitranClient('https://flywheel-cni.scitran.stanford.edu')
 
 
 def dtiinit_inputs(acquisitions, **kwargs):
-    diffusion = fa.find(acquisitions, measurement='diffusion')
+    diffusion = fa.find(acquisitions, label='DTI 2mm b1250 84dir(axial)')
 
     return dict(
         bvec=diffusion.find_file('*.bvec'),
@@ -24,6 +25,6 @@ def afq_inputs(analyses, **kwargs):
 if __name__ == '__main__':
     with fa.installed_client(client):
         fa.run([
-            fa.define_analysis('dtiinit', dtiinit_inputs, label_matcher=lambda val: val.startswith('dtiinit ')),
-            fa.define_analysis('afq', afq_inputs, label_matcher=lambda val: val.startswith('afq ')),
+            fa.define_analysis('dtiinit', dtiinit_inputs, label_matcher=lambda val: re.match(r'dtiinit($| )', val)),
+            fa.define_analysis('afq', afq_inputs, label_matcher=lambda val: re.match(r'afq($| )', val)),
         ], project=fa.find_project(label='ENGAGE'))
