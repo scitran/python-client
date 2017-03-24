@@ -8,6 +8,7 @@ from fnmatch import fnmatch
 from collections import namedtuple, Counter
 import math
 from contextlib import contextmanager
+import os
 
 
 def _sleep(seconds):
@@ -274,12 +275,22 @@ def run(operations, project=None, max_workers=10, session_limit=None):
         will use and how many CPUs you can use from your Flywheel Engine instance.
     session_limit - Used to test pipelines out by limiting the number of sessions
         the pipeline code will run on.
+
+    Enabling status mode - By setting the environment variable
+    FLYWHEEL_ANALYZER_STATUS to `true`, this method will only print the status
+    of this pipeline. It will not run anything.
     """
     gears = [g['gear'] for g in request('gears', params=dict(fields='all'))]
     gears_by_name = {
         gear['name']: gear
         for gear in gears
     }
+
+    # HACK this is seriously a total hack, but is a nice way to see the status
+    # of a pipeline without editing code.
+    if os.environ.get('FLYWHEEL_ANALYZER_STATUS').lower() == 'true':
+        status(operations, project)
+        return
 
     for operation in operations:
         assert operation.gear_name in gears_by_name,\
@@ -306,21 +317,29 @@ def run(operations, project=None, max_workers=10, session_limit=None):
         _wait_for_futures(futures)
 
 
-def _session_status(expected_ops, session):
+def _session_status(operations, session):
     analyses = _get_analyses(session['_id'])
 
-    started_ops = {
-        a['label'] for a in analyses}
+    started_ops = set()
+    completed_ops = set()
+    expected_ops = set()
+
+    for op in operations:
+        a = find(analyses, label=op.label_matcher)
+        if a:
+            started_ops.add(op.label)
+            if a['job']['state'] == 'complete':
+                completed_ops.add(op.label)
+        expected_ops.add(op.label)
+
     if not started_ops:
         return 'not started'
 
-    completed_ops = {
-        a['label'] for a in analyses
-        if a['job']['state'] == 'complete'}
     if completed_ops == expected_ops:
         return 'complete'
     else:
-        return 'in progress'
+        return 'in progress ({} of {} done)'.format(
+            len(completed_ops), len(expected_ops))
 
 
 def status(operations, project=None, detail=False):
@@ -329,8 +348,7 @@ def status(operations, project=None, detail=False):
     detail - When true, some session IDs for each status are logged.
     '''
     sessions = request('projects/{}/sessions'.format(project['_id']))
-    expected_ops = {op.label for op in operations}
-    statuses = [(s, _session_status(expected_ops, s)) for s in sessions]
+    statuses = [(s, _session_status(operations, s)) for s in sessions]
     if detail:
         result = {}
         for sess, stat in statuses:
@@ -338,4 +356,6 @@ def status(operations, project=None, detail=False):
         for stat, session_ids in result.iteritems():
             print(stat, len(session_ids), 'some IDs:', session_ids[:4])
     else:
-        print(Counter(stat for _, stat in statuses))
+        ct = Counter(stat for _, stat in statuses)
+        for key, count in sorted(ct.items()):
+            print(key, count)
