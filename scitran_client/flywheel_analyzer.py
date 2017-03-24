@@ -40,6 +40,8 @@ def define_analysis(gear_name, create_inputs, label=None, label_matcher=None):
     '''
     label = label or gear_name
     label_matcher = label_matcher or label
+    assert find([dict(label=label)], label=label_matcher),\
+        'Label matcher for operation {} does not detect this operation.'.format(label)
     return FlywheelAnalysisOperation(gear_name, create_inputs, label, label_matcher)
 
 

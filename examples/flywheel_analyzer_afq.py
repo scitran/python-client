@@ -24,7 +24,12 @@ def afq_inputs(analyses, **kwargs):
 
 if __name__ == '__main__':
     with fa.installed_client(client):
+        # doing this funny prefix matching to catch both "afq" and "afq 2017-01-01..."
         fa.run([
-            fa.define_analysis('dtiinit', dtiinit_inputs, label_matcher=lambda val: re.match(r'dtiinit($| )', val)),
-            fa.define_analysis('afq', afq_inputs, label_matcher=lambda val: re.match(r'afq($| )', val)),
+            fa.define_analysis(
+                'dtiinit', dtiinit_inputs,
+                label_matcher=lambda val: re.match(r'dtiinit($| )', val)),
+            fa.define_analysis(
+                'afq', afq_inputs,
+                label_matcher=lambda val: re.match(r'afq($| )', val)),
         ], project=fa.find_project(label='ENGAGE'))
