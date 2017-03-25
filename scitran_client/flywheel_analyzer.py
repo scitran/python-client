@@ -5,7 +5,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor, CancelledError
 import traceback
 from fnmatch import fnmatch
-from collections import namedtuple, Counter
+from collections import namedtuple
 import math
 from contextlib import contextmanager
 import os
@@ -351,13 +351,11 @@ def status(operations, project=None, detail=False):
     '''
     sessions = request('projects/{}/sessions'.format(project['_id']))
     statuses = [(s, _session_status(operations, s)) for s in sessions]
-    if detail:
-        result = {}
-        for sess, stat in statuses:
-            result.setdefault(stat, []).append(sess['_id'])
-        for stat, session_ids in result.iteritems():
-            print(stat, len(session_ids), 'some IDs:', session_ids[:4])
-    else:
-        ct = Counter(stat for _, stat in statuses)
-        for key, count in sorted(ct.items()):
-            print(key, count)
+    result = {}
+    for sess, stat in statuses:
+        result.setdefault(stat, []).append(sess['_id'])
+    for stat, session_ids in sorted(result.iteritems()):
+        msg = []
+        if detail:
+            msg = ['some IDs:', session_ids[:4]]
+        print(len(session_ids), stat, *msg)
