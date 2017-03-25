@@ -94,4 +94,8 @@ if __name__ == '__main__':
             define_analysis('reactivity-preprocessing', 'nonconscious 2', reactivity_inputs),
             define_analysis('connectivity-preprocessing', 'nonconscious 2', connectivity_inputs),
             define_analysis('first-level-models', 'nonconscious 2', first_level_model_inputs),
-        ], project=fa.find_project(label='ENGAGE'), session_limit=1)
+
+            define_analysis('reactivity-preprocessing', 'EmoReg', reactivity_inputs),
+            define_analysis('connectivity-preprocessing', 'EmoReg', connectivity_inputs),
+            # define_analysis('first-level-models', 'EmoReg', first_level_model_inputs),
+        ], project=fa.find_project(label='ENGAGE'))
