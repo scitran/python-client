@@ -208,7 +208,7 @@ def _analyze_session(operations, gears_by_name, session):
             # have completed analysis
             if not acquisitions:
                 acquisitions = request('sessions/{}/acquisitions'.format(session_id))
-            job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions)
+            job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions, session=session)
             job_config = _defaults_for_gear(gears_by_name[gear_name])
 
             # When create_inputs returns a tuple, we unpack it into job_inputs and job_config.

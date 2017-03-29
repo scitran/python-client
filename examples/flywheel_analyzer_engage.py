@@ -77,7 +77,7 @@ def reactivity_inputs(acquisition_label, acquisitions, session, **kwargs):
     )
 
 
-def connectivity_inputs(acquisition_label, analyses, acquisitions):
+def connectivity_inputs(acquisition_label, analyses, **kwargs):
     reactivity = fa.find(
         analyses, label=analysis_label('reactivity-preprocessing', acquisition_label))
 
@@ -88,7 +88,7 @@ def connectivity_inputs(acquisition_label, analyses, acquisitions):
     )
 
 
-def first_level_model_inputs(acquisition_label, analyses, acquisitions):
+def first_level_model_inputs(acquisition_label, analyses, acquisitions, **kwargs):
     reactivity = fa.find(
         analyses, label=analysis_label('reactivity-preprocessing', acquisition_label))
     connectivity = fa.find(
