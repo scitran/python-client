@@ -1,6 +1,5 @@
 import scitran_client.flywheel_analyzer as fa
 from scitran_client import ScitranClient
-import re
 
 client = ScitranClient('https://flywheel-cni.scitran.stanford.edu')
 
