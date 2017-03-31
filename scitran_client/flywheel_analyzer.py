@@ -260,6 +260,7 @@ def _wait_for_futures(futures):
         except (ShuttingDownException, CancelledError):
             pass
         except Exception:
+            print('error with {}'.format(f.name))
             traceback.print_exc()
 
     for future in futures:
@@ -340,10 +341,11 @@ def run(operations, project=None, max_workers=10, session_limit=None):
         sessions = sessions[:session_limit]
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(_analyze_session, operations, gears_by_name, session)
-            for session in sessions
-        ]
+        futures = []
+        for session in sessions:
+            f = executor.submit(_analyze_session, operations, gears_by_name, session)
+            f.name = 'session {}'.format(session['_id'])
+            futures.append(f)
         _wait_for_futures(futures)
 
 
