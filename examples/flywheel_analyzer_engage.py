@@ -60,7 +60,8 @@ def define_analysis(gear_name, acquisition_label, create_inputs):
 
 
 def reactivity_inputs(acquisition_label, acquisitions, session, **kwargs):
-    functional = fa.find(acquisitions, label=acquisition_label)
+    functional = fa.find_required_input_source(acquisitions, label=acquisition_label)
+    # using plain find() here b/c this T1w might be missing
     structural = fa.find(acquisitions, label='T1w 1mm')
     if not structural:
         assert session['_id'] in second_to_first_visit_id,\
@@ -70,6 +71,7 @@ def reactivity_inputs(acquisition_label, acquisitions, session, **kwargs):
         first_visit_acquisitions = client.request(
             'sessions/{}/acquisitions'.format(first_visit_session_id)).json()
         structural = fa.find(first_visit_acquisitions, label='T1w 1mm')
+        assert structural, 'Session {} is missing a structural.'.format(session['_id'])
 
     return dict(
         functional=functional.find_file('*.nii.gz'),
@@ -78,7 +80,7 @@ def reactivity_inputs(acquisition_label, acquisitions, session, **kwargs):
 
 
 def connectivity_inputs(acquisition_label, analyses, **kwargs):
-    reactivity = fa.find(
+    reactivity = fa.find_required_input_source(
         analyses, label=analysis_label('reactivity-preprocessing', acquisition_label))
 
     return dict(
@@ -89,11 +91,11 @@ def connectivity_inputs(acquisition_label, analyses, **kwargs):
 
 
 def first_level_model_inputs(acquisition_label, analyses, acquisitions, **kwargs):
-    reactivity = fa.find(
+    reactivity = fa.find_required_input_source(
         analyses, label=analysis_label('reactivity-preprocessing', acquisition_label))
-    connectivity = fa.find(
+    connectivity = fa.find_required_input_source(
         analyses, label=analysis_label('connectivity-preprocessing', acquisition_label))
-    behavioral = fa.find(
+    behavioral = fa.find_required_input_source(
         acquisitions, label='Behavioral and Physiological')
 
     return dict(

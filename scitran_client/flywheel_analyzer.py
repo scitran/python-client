@@ -117,6 +117,16 @@ def find(items, _constructor_=FlywheelFileContainer, **kwargs):
     return result and _constructor_(result)
 
 
+def find_required_input_source(items, **kwargs):
+    '''Finds a match to `kwargs` in `items` by using `find()`. If this match is not
+    found, the current operation will be skipped.
+    '''
+    result = find(items, **kwargs)
+    if not result:
+        raise SkipOperation('could not find match to {}'.format(kwargs))
+    return result
+
+
 def find_project(**kwargs):
     '''Finds a project that matches the key, value pairs in `kwargs`.
 
@@ -128,6 +138,19 @@ def find_project(**kwargs):
 
 class ShuttingDownException(Exception):
     shutting_down = False
+
+
+class SkipOperation(Exception):
+    '''
+    SkipOperation can be thrown from a `create_inputs` function to skip the execution of that
+    operation. This is a way to more dynamically create operation graphs by discarding nodes
+    at runtime.
+
+    For example, if every session has a variable number of functional acquisitions that need to be
+    processed, you can define operations for the max number of per-session functional acquisitions,
+    and throw SkipOperation for all operations corresponding to acquisitions missing for a session.
+    '''
+    pass
 
 
 def request(*args, **kwargs):
@@ -208,7 +231,12 @@ def _analyze_session(operations, gears_by_name, session):
             # have completed analysis
             if not acquisitions:
                 acquisitions = request('sessions/{}/acquisitions'.format(session_id))
-            job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions, session=session)
+            try:
+                job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions, session=session)
+            except SkipOperation:
+                # we skip to the next operation
+                continue
+
             job_config = _defaults_for_gear(gears_by_name[gear_name])
 
             # When create_inputs returns a tuple, we unpack it into job_inputs and job_config.
