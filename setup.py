@@ -7,7 +7,7 @@ with open(requirements_path, 'r') as f:
 
 dist = setup(
     name='Scitran Client',
-    version='0.0.1',
+    version='0.0.2',
     description='Official Scitran Client',
     author='vistalab',
     install_requires=install_requires,
