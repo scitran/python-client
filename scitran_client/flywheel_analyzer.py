@@ -5,9 +5,10 @@ import json
 from concurrent.futures import ThreadPoolExecutor, CancelledError
 import traceback
 from fnmatch import fnmatch
-from collections import namedtuple, Counter
+from collections import namedtuple
 import math
 from contextlib import contextmanager
+import os
 
 
 def _sleep(seconds):
@@ -23,10 +24,10 @@ state = {}
 
 
 FlywheelAnalysisOperation = namedtuple('FlywheelAnalysisOperation', [
-    'gear_name', 'create_inputs', 'label'])
+    'gear_name', 'create_inputs', 'label', 'label_matcher'])
 
 
-def define_analysis(gear_name, create_inputs, label=None):
+def define_analysis(gear_name, create_inputs, label=None, label_matcher=None):
     '''Defines an analysis operation that can be passed to run(...).
 
     An analysis operation has a gear name, label (which defaults to
@@ -38,7 +39,10 @@ def define_analysis(gear_name, create_inputs, label=None):
     inputs (to override the default config).
     '''
     label = label or gear_name
-    return FlywheelAnalysisOperation(gear_name, create_inputs, label)
+    label_matcher = label_matcher or label
+    assert find([dict(label=label)], label=label_matcher),\
+        'Label matcher for operation {} does not detect this operation.'.format(label)
+    return FlywheelAnalysisOperation(gear_name, create_inputs, label, label_matcher)
 
 
 class FlywheelFileContainer(dict):
@@ -105,9 +109,22 @@ def find(items, _constructor_=FlywheelFileContainer, **kwargs):
     # TODO make this have better errors messages for missing files
     result = next((
         item for item in items
-        if all(item[k] == v for k, v in kwargs.iteritems())
+        if all(
+            v(item[k]) if callable(v) else item[k] == v
+            for k, v in kwargs.iteritems()
+        )
     ), None)
     return result and _constructor_(result)
+
+
+def find_required_input_source(items, **kwargs):
+    '''Finds a match to `kwargs` in `items` by using `find()`. If this match is not
+    found, the current operation will be skipped.
+    '''
+    result = find(items, **kwargs)
+    if not result:
+        raise SkipOperation('could not find match to {}'.format(kwargs))
+    return result
 
 
 def find_project(**kwargs):
@@ -121,6 +138,19 @@ def find_project(**kwargs):
 
 class ShuttingDownException(Exception):
     shutting_down = False
+
+
+class SkipOperation(Exception):
+    '''
+    SkipOperation can be thrown from a `create_inputs` function to skip the execution of that
+    operation. This is a way to more dynamically create operation graphs by discarding nodes
+    at runtime.
+
+    For example, if every session has a variable number of functional acquisitions that need to be
+    processed, you can define operations for the max number of per-session functional acquisitions,
+    and throw SkipOperation for all operations corresponding to acquisitions missing for a session.
+    '''
+    pass
 
 
 def request(*args, **kwargs):
@@ -187,8 +217,8 @@ def _analyze_session(operations, gears_by_name, session):
     acquisitions = None
     session_id = session['_id']
     analyses = _get_analyses(session_id)
-    for gear_name, create_inputs, label in operations:
-        analysis = find(analyses, label=label)
+    for gear_name, create_inputs, label, label_matcher in operations:
+        analysis = find(analyses, label=label_matcher)
 
         # skip this analysis if we've already done it
         if analysis and analysis['job']['state'] == 'complete':
@@ -201,7 +231,12 @@ def _analyze_session(operations, gears_by_name, session):
             # have completed analysis
             if not acquisitions:
                 acquisitions = request('sessions/{}/acquisitions'.format(session_id))
-            job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions)
+            try:
+                job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions, session=session)
+            except SkipOperation:
+                # we skip to the next operation
+                continue
+
             job_config = _defaults_for_gear(gears_by_name[gear_name])
 
             # When create_inputs returns a tuple, we unpack it into job_inputs and job_config.
@@ -211,7 +246,7 @@ def _analyze_session(operations, gears_by_name, session):
                 job_inputs, job_config = job_inputs[0], dict(job_config, **job_inputs[1])
             _submit_analysis(session_id, gear_name, job_inputs, job_config, label)
 
-        analyses = _wait_for_analysis(session_id, label)
+        analyses = _wait_for_analysis(session_id, label_matcher)
     print(session_id, 'all analysis complete')
 
 
@@ -225,6 +260,7 @@ def _wait_for_futures(futures):
         except (ShuttingDownException, CancelledError):
             pass
         except Exception:
+            print('error with {}'.format(f.name))
             traceback.print_exc()
 
     for future in futures:
@@ -270,12 +306,22 @@ def run(operations, project=None, max_workers=10, session_limit=None):
         will use and how many CPUs you can use from your Flywheel Engine instance.
     session_limit - Used to test pipelines out by limiting the number of sessions
         the pipeline code will run on.
+
+    Enabling status mode - By setting the environment variable
+    FLYWHEEL_ANALYZER_STATUS to `true`, this method will only print the status
+    of this pipeline. It will not run anything.
     """
     gears = [g['gear'] for g in request('gears', params=dict(fields='all'))]
     gears_by_name = {
         gear['name']: gear
         for gear in gears
     }
+
+    # HACK this is seriously a total hack, but is a nice way to see the status
+    # of a pipeline without editing code.
+    if os.environ.get('FLYWHEEL_ANALYZER_STATUS', '').lower() == 'true':
+        status(operations, project)
+        return
 
     for operation in operations:
         assert operation.gear_name in gears_by_name,\
@@ -295,28 +341,37 @@ def run(operations, project=None, max_workers=10, session_limit=None):
         sessions = sessions[:session_limit]
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(_analyze_session, operations, gears_by_name, session)
-            for session in sessions
-        ]
+        futures = []
+        for session in sessions:
+            f = executor.submit(_analyze_session, operations, gears_by_name, session)
+            f.name = 'session {}'.format(session['_id'])
+            futures.append(f)
         _wait_for_futures(futures)
 
 
-def _session_status(expected_ops, session):
+def _session_status(operations, session):
     analyses = _get_analyses(session['_id'])
 
-    started_ops = {
-        a['label'] for a in analyses}
+    started_ops = set()
+    completed_ops = set()
+    expected_ops = set()
+
+    for op in operations:
+        a = find(analyses, label=op.label_matcher)
+        if a:
+            started_ops.add(op.label)
+            if a['job']['state'] == 'complete':
+                completed_ops.add(op.label)
+        expected_ops.add(op.label)
+
     if not started_ops:
         return 'not started'
 
-    completed_ops = {
-        a['label'] for a in analyses
-        if a['job']['state'] == 'complete'}
     if completed_ops == expected_ops:
         return 'complete'
     else:
-        return 'in progress'
+        return 'in progress ({} of {} done)'.format(
+            len(completed_ops), len(expected_ops))
 
 
 def status(operations, project=None, detail=False):
@@ -325,13 +380,12 @@ def status(operations, project=None, detail=False):
     detail - When true, some session IDs for each status are logged.
     '''
     sessions = request('projects/{}/sessions'.format(project['_id']))
-    expected_ops = {op.label for op in operations}
-    statuses = [(s, _session_status(expected_ops, s)) for s in sessions]
-    if detail:
-        result = {}
-        for sess, stat in statuses:
-            result.setdefault(stat, []).append(sess['_id'])
-        for stat, session_ids in result.iteritems():
-            print(stat, len(session_ids), 'some IDs:', session_ids[:4])
-    else:
-        print(Counter(stat for _, stat in statuses))
+    statuses = [(s, _session_status(operations, s)) for s in sessions]
+    result = {}
+    for sess, stat in statuses:
+        result.setdefault(stat, []).append(sess['_id'])
+    for stat, session_ids in sorted(result.iteritems()):
+        msg = []
+        if detail:
+            msg = ['some IDs:', session_ids[:4]]
+        print(len(session_ids), stat, *msg)

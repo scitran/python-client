@@ -278,12 +278,12 @@ class ScitranClient(object):
         desc = tqdm_kwargs.pop('desc', file_name)
         leave = tqdm_kwargs.pop('leave', False)
         with open(abs_file_path, 'wb') as fd:
-            content = response.iter_content()
+            content = response.iter_content(4096)
             if not tqdm_disable:
                 content = tqdm(
-                    response.iter_content(),
+                    content,
                     desc=desc, leave=leave,
-                    unit_scale=True, unit='B',
+                    unit=' 4KB',
                     **tqdm_kwargs
                 )
             for chunk in content:
