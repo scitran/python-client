@@ -9,6 +9,7 @@ from collections import namedtuple
 import math
 from contextlib import contextmanager
 import os
+import sys
 
 
 def _sleep(seconds):
@@ -260,7 +261,7 @@ def _wait_for_futures(futures):
         except (ShuttingDownException, CancelledError):
             pass
         except Exception:
-            print('error with {}'.format(f.name))
+            print('error with {}'.format(f.name), file=sys.stderr)
             traceback.print_exc()
 
     for future in futures:
