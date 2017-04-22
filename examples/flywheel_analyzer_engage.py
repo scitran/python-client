@@ -97,11 +97,14 @@ def first_level_model_inputs(acquisition_label, analyses, acquisitions, **kwargs
         analyses, label=analysis_label('connectivity-preprocessing', acquisition_label))
     behavioral = fa.find_required_input_source(
         acquisitions, label='Behavioral and Physiological')
+    behavioral_file = behavioral.find_file(label_to_behavioral_pattern[acquisition_label], default=None)
+    if not behavioral_file:
+        raise fa.SkipOperation()
 
     return dict(
         reactivity_functional=_find_file(reactivity, 'smoothed/s02_globalremoved_func_data.nii'),
         connectivity_functional=_find_file(connectivity, 'result/swa01_normalized_func_data.nii'),
-        behavioral=behavioral.find_file(label_to_behavioral_pattern[acquisition_label]),
+        behavioral=behavioral_file,
         structural_brain_fnirt_mask=_find_file(reactivity, 'brain_fnirt_mask/*.nii.gz'),
         example_func=_find_file(reactivity, 'example_func/*.nii.gz'),
         highres2example_func=_find_file(reactivity, 'highres2example_func_mat/*.mat'),
