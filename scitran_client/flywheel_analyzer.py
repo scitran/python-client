@@ -75,16 +75,17 @@ class FlywheelFileContainer(dict):
             f for f in self['files']
             if fnmatch(f['name'], pattern)]
 
+        container_name = 'in container {} in session {}'.format(self['_id'], self.get('session_id'))
         assert len(matches) <= 1, (
-            'Multiple matches found for pattern "{}" in container {}. Patterns should uniquely identify a file.'
-            .format(pattern, self['_id']))
+            'Multiple matches found for pattern "{}" {}. Patterns should uniquely identify a file.'
+            .format(pattern, container_name))
         if not matches:
             if has_default:
                 return kwargs.get('default')
             else:
                 raise Exception(
-                    'Could not find a match for "{}" in container {}.'
-                    .format(pattern, self['_id']))
+                    'Could not find a match for "{}" {}.'
+                    .format(pattern, container_name))
 
         f = matches[0]
 
@@ -195,7 +196,17 @@ def _get_analyses(session_id):
     ever been run.
     '''
     session = request('sessions/{}'.format(session_id))
-    return session.get('analyses') or []
+    response = session.get('analyses') or []
+    for item in response:
+        item['session_id'] = session_id
+    return response
+
+
+def _get_acquisitions(session_id):
+    response = request('sessions/{}/acquisitions'.format(session_id))
+    for item in response:
+        item['session_id'] = session_id
+    return response
 
 
 def _wait_for_analysis(session_id, label):
@@ -231,7 +242,7 @@ def _analyze_session(operations, gears_by_name, session):
             # lazily download acquisitions to avoid unnecessary requests for sessions that
             # have completed analysis
             if not acquisitions:
-                acquisitions = request('sessions/{}/acquisitions'.format(session_id))
+                acquisitions = _get_acquisitions(session_id)
             try:
                 job_inputs = create_inputs(analyses=analyses, acquisitions=acquisitions, session=session)
             except SkipOperation:
