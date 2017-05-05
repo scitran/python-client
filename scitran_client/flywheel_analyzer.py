@@ -164,15 +164,15 @@ def request(*args, **kwargs):
 def _defaults_for_gear(gear):
     return {
         key: value['default']
-        for key, value in gear['config'].iteritems()
+        for key, value in gear['gear']['config'].iteritems()
         if 'default' in value
     }
 
 
-def _submit_analysis(session_id, gear_name, job_inputs, job_config, label):
+def _submit_analysis(session_id, gear_id, job_inputs, job_config, label):
     body = dict(
         job=dict(
-            gear=gear_name,
+            gear_id=gear_id,
             tags=['ad-hoc'],
             inputs=job_inputs,
             config=job_config,
@@ -245,7 +245,7 @@ def _analyze_session(operations, gears_by_name, session):
             # defaults we have assembled from the gear manifest.
             if isinstance(job_inputs, tuple):
                 job_inputs, job_config = job_inputs[0], dict(job_config, **job_inputs[1])
-            _submit_analysis(session_id, gear_name, job_inputs, job_config, label)
+            _submit_analysis(session_id, gears_by_name[gear_name]['_id'], job_inputs, job_config, label)
 
         analyses = _wait_for_analysis(session_id, label_matcher)
     print(session_id, 'all analysis complete')
@@ -312,9 +312,9 @@ def run(operations, project=None, max_workers=10, session_limit=None):
     FLYWHEEL_ANALYZER_STATUS to `true`, this method will only print the status
     of this pipeline. It will not run anything.
     """
-    gears = [g['gear'] for g in request('gears', params=dict(fields='all'))]
+    gears = [g for g in request('gears', params=dict(fields='all'))]
     gears_by_name = {
-        gear['name']: gear
+        gear['gear']['name']: gear
         for gear in gears
     }
 
