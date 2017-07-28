@@ -12,6 +12,9 @@ import os
 import sys
 
 
+job_done_states = ('complete', 'failed')
+
+
 def _sleep(seconds):
     '''Sleeps .1 seconds at a time to make KeyboardInterrupt easier to catch.
     '''
@@ -217,7 +220,7 @@ def _wait_for_analysis(session_id, label):
     while True:
         analyses = _get_analyses(session_id)
         analysis_response = find(analyses, label=label)
-        if analysis_response['job']['state'] == 'complete':
+        if analysis_response['job']['state'] in job_done_states:
             return analyses
         print(session_id, 'state', analysis_response['job']['state'])
         if ShuttingDownException.shutting_down:
@@ -233,7 +236,7 @@ def _analyze_session(operations, gears_by_name, session):
         analysis = find(analyses, label=label_matcher)
 
         # skip this analysis if we've already done it
-        if analysis and analysis['job']['state'] == 'complete':
+        if analysis and analysis['job']['state'] in job_done_states:
             continue
 
         print('waiting for' if analysis else 'starting', label, 'for session', session_id)
