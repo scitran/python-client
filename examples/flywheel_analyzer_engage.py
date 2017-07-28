@@ -84,9 +84,9 @@ def connectivity_inputs(acquisition_label, analyses, **kwargs):
         analyses, label=analysis_label('reactivity-preprocessing', acquisition_label))
 
     return dict(
-        functional=_find_file(reactivity, 'realigned_unwarped_files/*.nii'),
-        highres2standard_warp=_find_file(reactivity, 'highres2standard_warp/*.nii.gz'),
-        example_func2highres=_find_file(reactivity, 'example_func2highres_mat/*.mat'),
+        functional=_find_file(reactivity, '01_realign_func_data.nii.gz'),
+        highres2standard_warp=_find_file(reactivity, 'structural/reg/highres2standard_warp.nii'),
+        example_func2highres=_find_file(reactivity, 'reg/example_func2highres.mat'),
     )
 
 
@@ -102,15 +102,15 @@ def first_level_model_inputs(acquisition_label, analyses, acquisitions, **kwargs
         raise fa.SkipOperation()
 
     return dict(
-        reactivity_functional=_find_file(reactivity, 'smoothed/s02_globalremoved_func_data.nii'),
-        connectivity_functional=_find_file(connectivity, 'result/swa01_normalized_func_data.nii'),
+        reactivity_functional=_find_file(reactivity, 's02_globalremoved_func_data.nii'),
+        connectivity_functional=_find_file(connectivity, 'swa01_normalized_func_data.nii'),
         behavioral=behavioral_file,
-        structural_brain_fnirt_mask=_find_file(reactivity, 'brain_fnirt_mask/*.nii.gz'),
-        example_func=_find_file(reactivity, 'example_func/*.nii.gz'),
-        highres2example_func=_find_file(reactivity, 'highres2example_func_mat/*.mat'),
-        example_func2highres=_find_file(reactivity, 'example_func2highres_mat/*.mat'),
-        highres2standard_warp=_find_file(reactivity, 'highres2standard_warp/*.nii.gz'),
-        spike_regressors_wFD=_find_file(reactivity, 'wFD/spike_regressors_wFD.mat'),
+        structural_brain_fnirt_mask=_find_file(reactivity, 'structural/struct/brain_fnirt_mask.nii'),
+        example_func=_find_file(reactivity, 'example_func.nii'),
+        highres2example_func=_find_file(reactivity, 'reg/highres2example_func.mat'),
+        example_func2highres=_find_file(reactivity, 'reg/example_func2highres.mat'),
+        highres2standard_warp=_find_file(reactivity, 'structural/reg/highres2standard_warp.nii'),
+        spike_regressors_wFD=_find_file(reactivity, 'spike_regressors_wFD.mat'),
     ), dict(task_type=label_to_task_type[acquisition_label])
 
 if __name__ == '__main__':
