@@ -181,7 +181,7 @@ def _submit_analysis(session_id, gear_id, job_inputs, job_config, label):
             inputs=job_inputs,
             config=job_config,
         ),
-        analysis=dict(label=label),
+        label=label,
     )
 
     response = request(
@@ -348,7 +348,7 @@ def run(operations, project=None, max_workers=10, session_limit=None):
     # - the script will resume work monitoring/dispatching for previous items
     #   because it iterates over sessions in the same way.
     # - the `session_limit` keyword arg works better for this reason too.
-    sessions.sort(key=lambda s: s['timestamp'])
+    sessions.sort(key=lambda s: s['created'])
     if session_limit is not None:
         # To ensure the limit on sessions consistently produces the same
         # set of sessions, we will sort the sessions before truncating
